@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from backend.optimizer import optimize_prompt
+from optimizer import optimize_prompt
 import pathlib
 import os
 
