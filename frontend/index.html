@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PromptForge — Prompt Optimizer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f11;
+    --bg2: #18181c;
+    --bg3: #222228;
+    --border: #2e2e38;
+    --text: #e8e8f0;
+    --muted: #888899;
+    --accent: #7c6ef7;
+    --accent2: #5b4fe0;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --radius: 10px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  header {
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg2);
+  }
+
+  .logo {
+    width: 34px; height: 34px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+
+  header h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+  header span { font-size: 13px; color: var(--muted); margin-left: 4px; }
+
+  .badge {
+    margin-left: auto;
+    font-size: 11px;
+    background: #1a1a2e;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px;
+  }
+
+  .hero {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .hero h2 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #e8e8f0 0%, #a89ef5 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero p { font-size: 15px; color: var(--muted); }
+
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  textarea {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 12px 14px;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  textarea:focus { border-color: var(--accent); }
+
+  .controls {
+    display: flex;
+    gap: 12px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  select {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 13px;
+    padding: 8px 12px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  select:focus { border-color: var(--accent); }
+
+  .btn {
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    margin-left: auto;
+  }
+
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    padding: 6px 14px;
+  }
+
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  #result-section { display: none; }
+
+  .issues-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .issue-tag {
+    font-size: 12px;
+    background: #2a1a1a;
+    border: 1px solid #4a2020;
+    color: var(--red);
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+
+  .diff-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 640px) { .diff-grid { grid-template-columns: 1fr; } }
+
+  .diff-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+  }
+
+  .diff-box.optimized { border-color: #2e4a3e; background: #111a16; }
+
+  .diff-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+  }
+
+  .diff-label.before { color: var(--muted); }
+  .diff-label.after { color: var(--green); }
+
+  .diff-text {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .score-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: var(--bg3);
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+
+  .score-num {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--green);
+    min-width: 56px;
+  }
+
+  .score-bar-wrap {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .score-bar {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    transition: width 0.8s ease;
+    width: 0%;
+  }
+
+  .copy-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg {
+    background: #2a1a1a;
+    border: 1px solid #4a2020;
+    color: var(--red);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    margin-top: 12px;
+    display: none;
+  }
+
+  footer {
+    text-align: center;
+    padding: 24px;
+    font-size: 12px;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🔨</div>
+  <h1>PromptForge <span>by Swecha</span></h1>
+  <span class="badge">Hackathon Build</span>
+</header>
+
+<main>
+  <div class="hero">
+    <h2>Stop guessing. Start engineering.</h2>
+    <p>Paste a rough prompt — get a precision-optimized version for any LLM.</p>
+  </div>
+
+  <div class="card">
+    <label>Your prompt</label>
+    <textarea id="prompt-input" rows="5" placeholder="e.g. summarize this article for me"></textarea>
+
+    <div class="controls">
+      <div>
+        <select id="model-select">
+          <option value="claude">Claude</option>
+          <option value="gpt4">GPT-4</option>
+          <option value="gemini">Gemini</option>
+          <option value="mistral">Mistral</option>
+          <option value="general">General / Any</option>
+        </select>
+      </div>
+      <div>
+        <select id="style-select">
+          <option value="general">General</option>
+          <option value="technical">Technical</option>
+          <option value="creative">Creative</option>
+          <option value="instructional">Instructional</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="optimize-btn" onclick="optimize()">
+        Optimize Prompt ✦
+      </button>
+    </div>
+
+    <div class="error-msg" id="error-msg"></div>
+  </div>
+
+  <div id="result-section">
+    <div class="card">
+      <label style="margin-bottom:12px">Issues detected</label>
+      <div class="issues-row" id="issues-row"></div>
+
+      <label style="margin-bottom:12px">Improvement score</label>
+      <div class="score-row">
+        <div class="score-num" id="score-num">0</div>
+        <div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:6px" id="score-label">Analyzing...</div>
+          <div class="score-bar-wrap"><div class="score-bar" id="score-bar"></div></div>
+        </div>
+      </div>
+
+      <label style="margin-bottom:12px">Before vs After</label>
+      <div class="diff-grid">
+        <div class="diff-box">
+          <div class="diff-label before">Original</div>
+          <div class="diff-text" id="original-text"></div>
+        </div>
+        <div class="diff-box optimized">
+          <div class="diff-label after">✦ Optimized</div>
+          <div class="diff-text" id="optimized-text"></div>
+        </div>
+      </div>
+
+      <div class="copy-row">
+        <button class="btn btn-ghost" onclick="copyOptimized()">Copy optimized prompt</button>
+        <button class="btn btn-ghost" onclick="reset()">Try another</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  PromptForge · Built at Swecha AI/ML Hackathon · Open Source on <a href="https://code.swecha.org" style="color:var(--accent)">code.swecha.org</a>
+</footer>
+
+<script>
+  async function optimize() {
+    const prompt = document.getElementById('prompt-input').value.trim();
+    if (!prompt) return;
+
+    const btn = document.getElementById('optimize-btn');
+    const errEl = document.getElementById('error-msg');
+    errEl.style.display = 'none';
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Optimizing...';
+
+    document.getElementById('result-section').style.display = 'none';
+
+    try {
+      const res = await fetch('/optimize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          target_model: document.getElementById('model-select').value,
+          style: document.getElementById('style-select').value,
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Server error');
+      }
+
+      const data = await res.json();
+      renderResult(data);
+    } catch (e) {
+      errEl.textContent = 'Error: ' + e.message;
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'Optimize Prompt ✦';
+    }
+  }
+
+  function renderResult(data) {
+    document.getElementById('original-text').textContent = data.original;
+    document.getElementById('optimized-text').textContent = data.optimized;
+
+    const issuesEl = document.getElementById('issues-row');
+    issuesEl.innerHTML = data.issues_found.length
+      ? data.issues_found.map(i => `<span class="issue-tag">${i}</span>`).join('')
+      : '<span style="font-size:13px;color:var(--green)">No major issues found!</span>';
+
+    const score = data.improvement_score;
+    document.getElementById('score-num').textContent = score;
+    document.getElementById('score-label').textContent =
+      score >= 80 ? 'Excellent optimization' :
+      score >= 60 ? 'Good improvement' :
+      score >= 40 ? 'Moderate improvement' : 'Minor improvement';
+
+    setTimeout(() => {
+      document.getElementById('score-bar').style.width = score + '%';
+    }, 100);
+
+    document.getElementById('result-section').style.display = 'block';
+    document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function copyOptimized() {
+    const text = document.getElementById('optimized-text').textContent;
+    navigator.clipboard.writeText(text);
+    const btn = event.target;
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy optimized prompt', 1500);
+  }
+
+  function reset() {
+    document.getElementById('prompt-input').value = '';
+    document.getElementById('result-section').style.display = 'none';
+    document.getElementById('prompt-input').focus();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  document.getElementById('prompt-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) optimize();
+  });
+</script>
+</body>
+</html>
