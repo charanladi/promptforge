@@ -3,7 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from optimizer import optimize_prompt
+from backend.optimizer import optimize_prompt
+import pathlib
 import os
 
 app = FastAPI(title="PromptForge API", version="1.0.0")
@@ -39,4 +40,7 @@ async def optimize(req: OptimizeRequest):
 def health():
     return {"status": "ok", "service": "PromptForge"}
 
-app.mount("/", StaticFiles(directory="../frontend", html=True), name="static")
+BASE_DIR = pathlib.Path(__file__).parent.parent
+FRONTEND_DIR = BASE_DIR / "frontend"
+if FRONTEND_DIR.exists():
+    app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="static")
