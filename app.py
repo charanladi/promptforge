@@ -1,5 +1,5 @@
 import streamlit as st
-import anthropic
+import google.generativeai as genai
 import json
 import re
 import os
@@ -7,18 +7,18 @@ import os
 st.set_page_config(page_title="PromptForge", page_icon="🔨", layout="centered")
 
 MODEL_TIPS = {
-    "Claude": "Claude responds best to explicit role definitions, structured output formats, and clear constraints.",
-    "GPT-4": "GPT-4 benefits from numbered instructions and explicit examples. Specify JSON output when needed.",
     "Gemini": "Gemini works well with direct, concise instructions. Include examples for complex tasks.",
-    "Mistral": "Mistral is instruction-tuned; use clear imperative sentences. Avoid ambiguity.",
-    "General": "Use clear role definitions, explicit output formats, and specify constraints like length, tone, and audience.",
+    "GPT-4": "GPT-4 benefits from numbered instructions and explicit examples.",
+    "Claude": "Claude responds best to explicit role definitions and structured output formats.",
+    "Mistral": "Mistral is instruction-tuned; use clear imperative sentences.",
+    "General": "Use clear role definitions, explicit output formats, and specify constraints.",
 }
 
 STYLE_TIPS = {
     "General": "Balance clarity and flexibility. Define role, task, format, and constraints.",
-    "Technical": "Use precise technical language. Specify output structure (JSON, markdown, code).",
-    "Creative": "Allow creative latitude. Specify tone, style references, and desired emotional effect.",
-    "Instructional": "Break into clear steps. Specify audience expertise level. Use numbered lists.",
+    "Technical": "Use precise technical language. Specify output structure.",
+    "Creative": "Allow creative latitude. Specify tone and desired emotional effect.",
+    "Instructional": "Break into clear steps. Specify audience expertise level.",
 }
 
 SYSTEM_PROMPT = """You are PromptForge, an expert prompt engineer. Analyze the user's rough prompt and rewrite it into a highly optimized version.
@@ -44,18 +44,14 @@ Style context: {style_tips}
 """
 
 def optimize_prompt(prompt, target_model, style, api_key):
-    client = anthropic.Anthropic(api_key=api_key)
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel("gemini-1.5-flash")
     system = SYSTEM_PROMPT.format(
         model_tips=MODEL_TIPS.get(target_model, MODEL_TIPS["General"]),
         style_tips=STYLE_TIPS.get(style, STYLE_TIPS["General"])
     )
-    message = client.messages.create(
-        model="claude-opus-4-5",
-        max_tokens=1024,
-        system=system,
-        messages=[{"role": "user", "content": f"Optimize this prompt:\n\n{prompt}"}]
-    )
-    raw = message.content[0].text.strip()
+    response = model.generate_content(f"{system}\n\nOptimize this prompt:\n\n{prompt}")
+    raw = response.text.strip()
     raw = re.sub(r"^```json\s*", "", raw)
     raw = re.sub(r"^```\s*", "", raw)
     raw = re.sub(r"\s*```$", "", raw)
@@ -74,15 +70,15 @@ st.title("🔨 PromptForge")
 st.caption("AI-powered prompt optimizer — stop guessing, start engineering.")
 st.divider()
 
-api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+api_key = os.environ.get("GEMINI_API_KEY", "")
 if not api_key:
-    api_key = st.text_input("🔑 Anthropic API Key", type="password", placeholder="sk-ant-...")
-    st.caption("Your key is never stored. [Get one here](https://console.anthropic.com)")
+    api_key = st.text_input("🔑 Gemini API Key", type="password", placeholder="AIza...")
+    st.caption("Free API key at [aistudio.google.com](https://aistudio.google.com/app/apikey)")
 
 prompt = st.text_area("Your prompt", placeholder="e.g. summarize this article for me", height=120)
 col1, col2 = st.columns(2)
 with col1:
-    target_model = st.selectbox("Target Model", ["Claude", "GPT-4", "Gemini", "Mistral", "General"])
+    target_model = st.selectbox("Optimize for Model", ["Gemini", "GPT-4", "Claude", "Mistral", "General"])
 with col2:
     style = st.selectbox("Style", ["General", "Technical", "Creative", "Instructional"])
 
@@ -90,7 +86,7 @@ if st.button("⚡ Optimize Prompt", type="primary", use_container_width=True):
     if not prompt.strip():
         st.warning("Please enter a prompt first.")
     elif not api_key:
-        st.error("Please enter your Anthropic API key.")
+        st.error("Please enter your Gemini API key.")
     else:
         with st.spinner("Optimizing your prompt..."):
             try:
@@ -99,7 +95,7 @@ if st.button("⚡ Optimize Prompt", type="primary", use_container_width=True):
                 score = result["improvement_score"]
                 col1, col2 = st.columns([1, 3])
                 with col1:
-                    st.metric("Score", f"{score}/100")
+                    st.metric("Improvement Score", f"{score}/100")
                 with col2:
                     st.progress(score / 100)
                 if result["issues_found"]:
