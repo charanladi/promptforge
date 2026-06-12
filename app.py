@@ -45,7 +45,7 @@ Style context: {style_tips}
 
 def optimize_prompt(prompt, target_model, style, api_key):
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.0-flash")
     system = SYSTEM_PROMPT.format(
         model_tips=MODEL_TIPS.get(target_model, MODEL_TIPS["General"]),
         style_tips=STYLE_TIPS.get(style, STYLE_TIPS["General"])
