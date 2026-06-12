@@ -72,7 +72,7 @@ def optimize_prompt(prompt, target_model, style, api_key):
         "improvement_score": int(result.get("improvement_score", 50)),
     }
 
-api_key = st.secrets.get("GROQ_API_KEY", "") or os.environ.get("GROQ_API_KEY", "")
+api_key = os.environ.get("GROQ_API_KEY", "")
 
 st.title("🔨 PromptForge")
 st.caption("AI-powered prompt optimizer — stop guessing, start engineering.")
