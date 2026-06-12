@@ -38,6 +38,7 @@ Rules:
 - Define the audience and tone
 - Add constraints (length, style, what to avoid)
 - Preserve the original intent
+- Detect the language of the input and respond in the SAME language
 
 Model context: {model_tips}
 Style context: {style_tips}
