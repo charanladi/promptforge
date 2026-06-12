@@ -1,5 +1,5 @@
 import streamlit as st
-import google.generativeai as genai
+from groq import Groq
 import json
 import re
 import os
@@ -44,14 +44,20 @@ Style context: {style_tips}
 """
 
 def optimize_prompt(prompt, target_model, style, api_key):
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    client = Groq(api_key=api_key)
     system = SYSTEM_PROMPT.format(
         model_tips=MODEL_TIPS.get(target_model, MODEL_TIPS["General"]),
         style_tips=STYLE_TIPS.get(style, STYLE_TIPS["General"])
     )
-    response = model.generate_content(f"{system}\n\nOptimize this prompt:\n\n{prompt}")
-    raw = response.text.strip()
+    response = client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": f"Optimize this prompt:\n\n{prompt}"}
+        ],
+        max_tokens=1024
+    )
+    raw = response.choices[0].message.content.strip()
     raw = re.sub(r"^```json\s*", "", raw)
     raw = re.sub(r"^```\s*", "", raw)
     raw = re.sub(r"\s*```$", "", raw)
@@ -66,14 +72,11 @@ def optimize_prompt(prompt, target_model, style, api_key):
         "improvement_score": int(result.get("improvement_score", 50)),
     }
 
+api_key = st.secrets.get("GROQ_API_KEY", "") or os.environ.get("GROQ_API_KEY", "")
+
 st.title("🔨 PromptForge")
 st.caption("AI-powered prompt optimizer — stop guessing, start engineering.")
 st.divider()
-
-api_key = os.environ.get("GEMINI_API_KEY", "")
-if not api_key:
-    api_key = st.text_input("🔑 Gemini API Key", type="password", placeholder="AIza...")
-    st.caption("Free API key at [aistudio.google.com](https://aistudio.google.com/app/apikey)")
 
 prompt = st.text_area("Your prompt", placeholder="e.g. summarize this article for me", height=120)
 col1, col2 = st.columns(2)
@@ -86,7 +89,7 @@ if st.button("⚡ Optimize Prompt", type="primary", use_container_width=True):
     if not prompt.strip():
         st.warning("Please enter a prompt first.")
     elif not api_key:
-        st.error("Please enter your Gemini API key.")
+        st.error("API key not configured.")
     else:
         with st.spinner("Optimizing your prompt..."):
             try:
