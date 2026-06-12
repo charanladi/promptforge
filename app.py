@@ -72,11 +72,12 @@ def optimize_prompt(prompt, target_model, style, api_key):
         "improvement_score": int(result.get("improvement_score", 50)),
     }
 
-api_key = os.environ.get("GROQ_API_KEY", "")
-
 st.title("🔨 PromptForge")
 st.caption("AI-powered prompt optimizer — stop guessing, start engineering.")
 st.divider()
+
+api_key = st.text_input("🔑 Groq API Key", type="password", placeholder="gsk_...")
+st.caption("Free API key at [console.groq.com](https://console.groq.com)")
 
 prompt = st.text_area("Your prompt", placeholder="e.g. summarize this article for me", height=120)
 col1, col2 = st.columns(2)
@@ -89,7 +90,7 @@ if st.button("⚡ Optimize Prompt", type="primary", use_container_width=True):
     if not prompt.strip():
         st.warning("Please enter a prompt first.")
     elif not api_key:
-        st.error("API key not configured.")
+        st.error("Please enter your Groq API key.")
     else:
         with st.spinner("Optimizing your prompt..."):
             try:
