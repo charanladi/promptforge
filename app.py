@@ -4,7 +4,7 @@ import json
 import re
 import os
 
-st.set_page_page_config(page_title="PromptForge", page_icon="🔨", layout="centered")
+st.set_page_config(page_title="PromptForge", page_icon="🔨", layout="centered")
 
 LANGUAGES = {
     "English": "en",
