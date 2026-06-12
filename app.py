@@ -6,6 +6,26 @@ import os
 
 st.set_page_config(page_title="PromptForge", page_icon="🔨", layout="centered")
 
+LANGUAGES = {
+    "English": "en",
+    "Hindi": "hi",
+    "Telugu": "te",
+    "Tamil": "ta",
+    "Kannada": "kn",
+    "Bengali": "bn",
+    "Marathi": "mr",
+}
+
+LANG_PROMPTS = {
+    "en": "Respond entirely in English.",
+    "hi": "पूरी तरह हिंदी में जवाब दें।",
+    "te": "పూర్తిగా తెలుగులో సమాధానం ఇవ్వండి.",
+    "ta": "முழுவதும் தமிழில் பதில் அளிக்கவும்.",
+    "kn": "ಸಂಪೂರ್ಣವಾಗಿ ಕನ್ನಡದಲ್ಲಿ ಉತ್ತರಿಸಿ.",
+    "bn": "সম্পূর্ণ বাংলায় উত্তর দিন।",
+    "mr": "संपूर्णपणे मराठीत उत्तर द्या.",
+}
+
 MODEL_TIPS = {
     "Gemini": "Gemini works well with direct, concise instructions. Include examples for complex tasks.",
     "GPT-4": "GPT-4 benefits from numbered instructions and explicit examples.",
@@ -23,6 +43,8 @@ STYLE_TIPS = {
 
 SYSTEM_PROMPT = """You are PromptForge, an expert prompt engineer. Analyze the user's rough prompt and rewrite it into a highly optimized version.
 
+{lang_instruction}
+
 Respond with ONLY a valid JSON object — no preamble, no markdown, no explanation outside the JSON.
 
 JSON format:
@@ -38,15 +60,16 @@ Rules:
 - Define the audience and tone
 - Add constraints (length, style, what to avoid)
 - Preserve the original intent
-- Detect the language of the input and respond in the SAME language
+- issues_found must also be in the selected language
 
 Model context: {model_tips}
 Style context: {style_tips}
 """
 
-def optimize_prompt(prompt, target_model, style, api_key):
+def optimize_prompt(prompt, target_model, style, api_key, lang_code):
     client = Groq(api_key=api_key)
     system = SYSTEM_PROMPT.format(
+        lang_instruction=LANG_PROMPTS.get(lang_code, LANG_PROMPTS["en"]),
         model_tips=MODEL_TIPS.get(target_model, MODEL_TIPS["General"]),
         style_tips=STYLE_TIPS.get(style, STYLE_TIPS["General"])
     )
@@ -75,8 +98,16 @@ def optimize_prompt(prompt, target_model, style, api_key):
 
 api_key = st.secrets.get("GROQ_API_KEY", "") or os.environ.get("GROQ_API_KEY", "")
 
-st.title("🔨 PromptForge")
-st.caption("AI-powered prompt optimizer — stop guessing, start engineering.")
+# Top bar with language selector
+col1, col2 = st.columns([3, 1])
+with col1:
+    st.title("🔨 PromptForge")
+    st.caption("AI-powered prompt optimizer — stop guessing, start engineering.")
+with col2:
+    selected_lang = st.selectbox("🌐 Language", list(LANGUAGES.keys()), label_visibility="collapsed")
+
+lang_code = LANGUAGES[selected_lang]
+
 st.divider()
 
 prompt = st.text_area("Your prompt", placeholder="e.g. summarize this article for me", height=120)
@@ -94,7 +125,7 @@ if st.button("⚡ Optimize Prompt", type="primary", use_container_width=True):
     else:
         with st.spinner("Optimizing your prompt..."):
             try:
-                result = optimize_prompt(prompt, target_model, style, api_key)
+                result = optimize_prompt(prompt, target_model, style, api_key, lang_code)
                 st.divider()
                 score = result["improvement_score"]
                 col1, col2 = st.columns([1, 3])
